@@ -1,28 +1,43 @@
-"""testtask URL Configuration
+import pathlib
+from http.client import HTTPException
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/3.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
+import pandas as pd
+import dropbox
+from dropbox.exceptions import AuthError
 from django.contrib import admin
 from django.urls import path
 from ninja import NinjaAPI
+import requests
 
 api = NinjaAPI()
+dbx = dropbox.Dropbox("lj6mb7683g6992q")
+
+headers = {
+    "Authorization": "Bearer sl.BXs9Zzz5OIRND4kELhSQzr8Ro_zDDqchjQLrXECwATm2BLK2kbt1gCRNl5YyBkenOw7KD-DhK2TqW_5KvL2GaL-o4ERcdk8e7bLiajg54wuQO83tK7_S_jg04piq4Lw6Wgops6o",
+    'Content-Type': 'application/json'
+}
 
 
-@api.get("/")
-def test(request):
-    return "yay it works!"
+@api.get("/file/{key}")
+def get_file(key: str):
+    try:
+        dbx = dropbox.Dropbox('lj6mb7683g6992q')
+        file = dbx.files_download(key)
+        return file.content
+    except dropbox.exceptions.ApiError as e:
+        raise HTTPException(status_code=400, detail="Failed to retrieve file.")
 
 
-urlpatterns = [path("admin/", admin.site.urls), path("/", api.urls)]
+@api.put("/file/{key}")
+def update_file(key: str, new_content):
+    try:
+        dbx = dropbox.Dropbox("lj6mb7683g6992q")
+        file = dbx.files_upload(new_content, key)
+        return {"message": "File updated successfully"}
+    except dropbox.exceptions.ApiError as e:
+        raise HTTPException(status_code=400, detail="Failed to update file.")
+
+
+
+
+urlpatterns = [path("admin/", admin.site.urls), path("", api.urls)]
